@@ -19,7 +19,23 @@ Want to support a good range of file types.
 Definitely need to have good test coverage for a project like this.
 
 * Flow of current program
+#+begin_src dot
+  digraph G {
+      "Take in filename" -> "Load according to file extension";
 
+      "Load according to file extension" -> ".sdf";
+      "Load according to file extension" -> ".csv";
+      "Load according to file extension" -> ".tsv";
+      "Load according to file extension" -> ".smi";
+
+      ".sdf" -> "PandasTools.LoadSDF";
+      ".csv" -> "pandas.read_csv";
+      ".tsv" -> "pandas.read_csv";
+      ".smi" -> "pandas.read_csv";
+
+      "PandasTools.LoadSDF" -> "";
+  }
+#+end_src
 * Dependencies
 Libraries used in this project:
 - The [[https://www.rdkit.org/docs/GettingStartedInPython.html][RDKit]], an open-source toolkit for cheminformatics.
@@ -225,6 +241,38 @@ develop~, but there is scant information on how it works.
 *** TODO Create testing setup
 
 * Log
+
+** 21 May 2020
+- Rereading TBV to see what exactly the program should do. 
+- Not concerned with name -> structure conversion; we assume you did that part
+  correctly.
+- Also only concerned with 2D representations of compounds.
+- First three steps: removal of inorganics; removal of mixtures; structural
+  conversion and cleaning
+- Removal of inorganics
+  - Assuming SMILES strings are available, empirical formulas can be calculated
+    and those not containing carbon can be filtered.
+    - Often we get the mol representation (SDF), so we can go directly to
+      filtering?
+  - Identify inorganics by analyzing compound formula for rare metals &
+    organometallics
+    - Dragon descriptors break on these; is that a reliable metric?
+- Removal of mixtures
+  - Three possibilities
+    1. All compounds in mixture identical => keep one, delete others
+    2. Mixture contains one large organic compound & several smaller =>
+       generally delete, but may want to keep compound with highest mol weight
+    3. Several organic compounds with similar mol weights => deletion
+       recommended, manual intervention needed to keep record
+- Structural conversion & cleaning
+  - Remove metal counterions, neutralize remaining carbocations and carbanions
+  - Neutralize charged organics
+  - Flow is: identify salts -> delete counterions -> neutralize remaining
+    organic elements
+    - deal with zwitterions?
+    - covalent bonds between metals and molecules require their own treatment.
+  - How to deal with explicit vs implicit hydrogens?
+- Goal now is to get removal of inorganics and mixtures solid
 
 ** 17 May 2020
 - Doesn't make sense with flow of curate.py to have cli set up with subcommands;

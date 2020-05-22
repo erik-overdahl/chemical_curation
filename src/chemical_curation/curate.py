@@ -116,35 +116,22 @@ def get_activities(df, original_filename, activity_fields, mol_field = "mol"):
     # make a dict with the targets as the keys and a list of all column names
     # containing that target as the items.
     # Could rewrite as:
-    ## activity_hits = {target:[] for target in activity_fields}
-    ## for target in activity_hits:
-    ##     activity_hits[target] = [col for col in df.columns if target.lower() in col.lower()]
-        
-    activity_hits = {}
-    for activity_field in activity_fields:
-        activity_hits[activity_field] = []
-        for col_name in df.columns:
-            if activity_field.lower() in col_name.lower():
-                # why is this check necessary, didn't we just put it in activity hits 3 lines ago
-                if activity_field in activity_hits:
-                    activity_hits[activity_field].append(col_name)
-
+    activity_hits = {target:[] for target in activity_fields}
+    for target in activity_hits:
+        activity_hits[target] = [col for col in df.columns if target.lower() in col.lower()]
+    
     # look through the columns again, this time looking to see if they contain the mol_field string
     # Should this require equality, not containment, and then we just tell them to pass the full name
     # of the mol column, with the default being "mol"?
-    ## mol_hits = [col in df.columns if col.lower().contains(mol_field.lower())]
-    mol_hits = []
-    for col_name in df.columns:
-        if mol_field.lower() in col_name.lower():
-            mol_hits.append(col_name)
-
+    mol_hits = [col in df.columns if col.lower().contains(mol_field.lower())]
+    
     # remove the targets that we couldn't find a column for.
     # If we find multiple possible columns for a target, give up.
     to_remove = []
     for activity_field, hits in activity_hits.items():
         if len(hits) == 0:
             logging.warning(f"Supplied activity field name '{activity_field}' not found in dataframe. Skipping.")
-            to_remove.append(activity_field)
+            del activity_hits[activity_field]
             continue
         if len(hits) > 1:
             logging.warning(f"Supplied activity field name '{activity_field}' is a substring of multiple fields.\n Hits: {activity_hits}\n Exiting.")
@@ -153,10 +140,6 @@ def get_activities(df, original_filename, activity_fields, mol_field = "mol"):
         else:
             activity_hits[activity_field] = hits[0]
             print(f"Activity field found: {activity_hits[activity_field]}")
-
-    for item in to_remove:
-        # why not just remove it when you found it???
-        activity_hits.pop(item)
 
     # If we find zero or many columns with the mol_field string, give up.
     # Otherwise, select the one column we found.
@@ -220,7 +203,7 @@ def get_activities(df, original_filename, activity_fields, mol_field = "mol"):
     # Initialize so that we don't have to do the checking below?
     ## stats = {target:{'precise':0, 'imprecise':0} for target in activity_hits}
     # or, why not reuse /activity_hits/?
-    stats = {}
+    stats = {target:{'precise':0, 'imprecise':0} for target in activity_hits}
 
     # DON'T USE ITERROWS
     for i, row in trimmed_df.iterrows():
@@ -248,19 +231,11 @@ def get_activities(df, original_filename, activity_fields, mol_field = "mol"):
                 except:
                     imprecise[activity_name] = val
 
-                if activity_name not in stats:
-                    stats[activity_name] = {}
-                    if precise:
-                        stats[activity_name]['precise'] = 1
-                        stats[activity_name]['imprecise'] = 0
-                    else:
-                        stats[activity_name]['imprecise'] = 1
-                        stats[activity_name]['precise'] = 0
+                # what is this checking for? precise is a dict, it's always True
+                if precise:
+                    stats[activity_name]['precise'] += 1
                 else:
-                    if precise:
-                        stats[activity_name]['precise'] += 1
-                    else:
-                        stats[activity_name]['imprecise'] += 1
+                    stats[activity_name]['imprecise'] += 1
 
         # Is this conditional why mol_field wasn't a passed parameter?
         # I think there is probably a different way to deal with this (maybe look
@@ -665,8 +640,3 @@ if __name__ == "__main__":
          targets = ["ic50", "ki", "kd"],
          review_threshold=10,
          verbosity='INFO')
-
-    #filenames = ["/home/josh/git/chemical_curation/test/failures.smi",
-    #"/home/josh/git/cdk9_design/data/uncleaned/sdf/chembl_cdk9.sdf"]
-    # filenames = ["/home/josh/git/chemical_curation/test/failures.smi"]
-    #filenames = ["/home/josh/git/cdk9_design/data/uncleaned/sdf/chembl_cdk9.sdf"]
