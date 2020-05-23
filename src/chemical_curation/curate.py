@@ -1,3 +1,10 @@
+import os
+import math
+import logging
+import pathlib
+
+import pandas
+
 from rdkit import Chem
 from rdkit.Chem import SaltRemover
 from rdkit.Chem.MolStandardize import rdMolStandardize
@@ -12,14 +19,7 @@ import molvs.metal
 
 rdBase.DisableLog('rdApp.*')
 
-import os
 
-import math #for rounding
-
-import pandas
-
-import logging
-import pathlib
 
 #list of atoms allowed for dragon descriptor calculatoin
 dragon_allowed_atoms = set(["H","B","C","N","O","F","Al","Si","P","S","Cl","Cr",
