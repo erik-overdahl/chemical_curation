@@ -123,7 +123,7 @@ def get_activities(df, original_filename, activity_fields, mol_field = "mol"):
     # look through the columns again, this time looking to see if they contain the mol_field string
     # Should this require equality, not containment, and then we just tell them to pass the full name
     # of the mol column, with the default being "mol"?
-    mol_hits = [col in df.columns if col.lower().contains(mol_field.lower())]
+    mol_hits = [col for col in df.columns if mol_field.lower() in col.lower()]
     
     # remove the targets that we couldn't find a column for.
     # If we find multiple possible columns for a target, give up.
@@ -404,26 +404,8 @@ def get_mols_from_files(filenames, targets, verbose = True):
     all_mols = []
 
     for filename in filenames:
-        logging.info(filename)
 
-        # Determine the type of the filename by the extension
-        file_ext = pathlib.Path(filename).suffix
-        ## Mol_field should probably be a passable agument, defaulting to "mol"?
-        mol_field = "mol"
-
-        # Read file depending on file extension
-        if file_ext == ".sdf":
-            df = PandasTools.LoadSDF(filename, molColName = mol_field)
-        elif file_ext in [".csv", ".tsv", ".smi"]:
-            sep = ","
-            if file_ext == ".tsv":
-                sep = "\t"
-            if file_ext == ".smi":
-                mol_field = "smiles"
-            df = pandas.read_csv(filename, sep = sep)
-        else:
-            # TODO Throw an error
-            pass
+        df = get_dataframe_from_file(filename)        
 
         # Stats is never used?
         mols, stats, for_review = get_activities(df, original_filename = filename,
@@ -559,6 +541,67 @@ def deduplicate_mols(mols, data_type, target, review_threshold, verbose = True):
 
     return dedup, for_review
 
+
+def get_dataframe_from_file(filename, mol_col="ROMol", smiles_col="SMILES"):
+    """Determine file type from filename extension and produce a Pandas dataframe
+    accordingly.
+
+    Supported filename extensions: .sdf, .csv, .tsv, .smi
+
+    If the file is an SDF, get the structures from the MOL_COL
+    column. Otherwise, use the SMILES strings in SMILES_COL to obtain the
+    structures.
+
+    Parameters
+    ----------
+    
+    filename: filepath string
+        The name of the file from which to read the data; can an be absolute or
+        relative path.
+
+    mol_col: string containing column name (case-insensitive)
+        In an SDF formatted file, the name of the column containing the structures
+
+    smiles_col: string containing column name (case-insensitive)
+        In a non-SDF formatted file, the name of the column containing the SMILES strings
+
+
+    Returns
+    -------
+
+    df: Pandas dataframe 
+        A Pandas dataframe containing the data from FILENAME. 
+
+    """
+    logging.info(f'Reading {filename}')
+
+    file_ext = pathlib.Path(filename).suffix
+    
+    if file_ext == ".sdf":
+        ## Maintaining the standard parameters: /idName/ = 'ID', /includeFingerprints/ = False,
+        ##                                      /isomericSmiles/ = True, /embedProps/ = False,
+        ##                                      /removeHs/ = True, /strictParsing/ = True, /smilesName/ = None
+        df = PandasTools.LoadSDF(filename, molColName = mol_col)
+        
+    elif file_ext in [".csv", ".tsv", ".smi"]:
+        sep = ","
+        if file_ext == ".tsv":
+            sep = "\t"
+        elif file_ext == ".smi":
+            mol_field = "smiles"
+        df = pandas.read_csv(filename, sep = sep)
+        # Generate structures from SMILES
+        # Yields /None/ if conversion fails
+        PandasTools.AddMoleculeColumnToFrame(df, smilesCol=smiles_col)
+        
+    elif file_ext == '':
+        # TODO: Error: Cannot determine file type
+        pass
+    else:
+        # TODO: Error: file type not supported
+        pass
+
+    return df
 
 def main(filenames, output_dir, targets, review_threshold, verbosity):
 

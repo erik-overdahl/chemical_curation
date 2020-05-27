@@ -242,6 +242,34 @@ develop~, but there is scant information on how it works.
 
 * Log
 
+** 26 May 2020
+- Got a basic working example of reading in different file types and producing a
+  Pandas dataframe
+- 
+
+** 24 May 2020
+- Writing a function to load data into a Pandas df when given a filename and
+  some column names.
+- Some questions:
+  - In TBV paper, it says empirical formulas can be calculated from SMILES
+    strings - is this the same as creating an RDKit Mol object from a SMILES
+    string?
+  - The rdkit.Chem.PandasTools methods give the option to embed fingerprints in
+    the RDKit Mol objects "to accelerate substructure matching"; would this be a
+    reliable way to do filtering? (Might matter how fingerprint calculated?)
+- ANSWERED: Not quite sure what you mean in your first question.  Maybe this is
+  what you are after: Transforming the SMILES string into an RDKIT Mol
+  object. Now, from that rdMol, you could calculate the empirical formula
+  (rdkit.Chem.rdMolDescriptors.CalcMolFormula((Mol)mol[,
+  (bool)separateIsotopes=False[, (bool)abbreviateHIsotopes=True]]) → str :
+  returns the molecule’s formula).
+- Second question really depends on what type of filtering you want to do.
+  Substructure matching is most useful when, as the name suggests, you want to
+  match a certain feature/combo of features in the molecule. If you just want to
+  make sure your dataset is only comprised of organic compounds, then
+  calculating some basic descriptors (like the number of carbons in your
+  example) would be simpler and less compute intensive.
+
 ** 21 May 2020
 - Rereading TBV to see what exactly the program should do. 
 - Not concerned with name -> structure conversion; we assume you did that part
